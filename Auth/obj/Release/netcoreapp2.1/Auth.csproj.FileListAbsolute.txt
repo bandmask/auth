@@ -1,0 +1,14 @@
+E:\Programmering\containerized_web\auth\Auth\bin\Release\netcoreapp2.1\Auth.deps.json
+E:\Programmering\containerized_web\auth\Auth\bin\Release\netcoreapp2.1\Auth.runtimeconfig.json
+E:\Programmering\containerized_web\auth\Auth\bin\Release\netcoreapp2.1\Auth.runtimeconfig.dev.json
+E:\Programmering\containerized_web\auth\Auth\bin\Release\netcoreapp2.1\Auth.dll
+E:\Programmering\containerized_web\auth\Auth\bin\Release\netcoreapp2.1\Auth.pdb
+E:\Programmering\containerized_web\auth\Auth\obj\Release\netcoreapp2.1\Auth.csprojAssemblyReference.cache
+E:\Programmering\containerized_web\auth\Auth\obj\Release\netcoreapp2.1\Auth.csproj.CoreCompileInputs.cache
+E:\Programmering\containerized_web\auth\Auth\obj\Release\netcoreapp2.1\Auth.RazorAssemblyInfo.cache
+E:\Programmering\containerized_web\auth\Auth\obj\Release\netcoreapp2.1\Auth.RazorAssemblyInfo.cs
+E:\Programmering\containerized_web\auth\Auth\obj\Release\netcoreapp2.1\Auth.AssemblyInfoInputs.cache
+E:\Programmering\containerized_web\auth\Auth\obj\Release\netcoreapp2.1\Auth.AssemblyInfo.cs
+E:\Programmering\containerized_web\auth\Auth\obj\Release\netcoreapp2.1\Auth.RazorTargetAssemblyInfo.cache
+E:\Programmering\containerized_web\auth\Auth\obj\Release\netcoreapp2.1\Auth.dll
+E:\Programmering\containerized_web\auth\Auth\obj\Release\netcoreapp2.1\Auth.pdb
