@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+  auth:
+    container_name: dotnetcore
+    image: bandmask/dotnetcore
+    build: ./
+    ports:
+      - "8081:5000"
+    depends_on:
+      - mongodb
+    links:
+      - mongodb
+
+  mongodb:
+    container_name: mongodb
+    image: amd64/mongo
+    ports:
+      - "27017:27017"
