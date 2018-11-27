@@ -1,23 +1,22 @@
-using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using System.Threading.Tasks;
 using Auth.Models;
+using Auth.Settings;
+using Auth.Token;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 
 namespace Auth.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public class AuthController : Controller
+    public partial class AuthController : BaseController
     {
+        private const string CLIENT_HEADER_NAME = "ropr-domain-client";
+
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
         private readonly JwtIssuerOptions _jwtIssuerOptions;
@@ -34,16 +33,18 @@ namespace Auth.Controllers
         public async Task<IActionResult> Login([FromBody] CredentialsModel credentials)
         {
             var user = await _userManager.FindByEmailAsync(credentials.Email);
-            if (user != null)
+            if (user == null)
             {
-                var result = await _signInManager.PasswordSignInAsync(user, credentials.Password, true, false);
-                if (result.Succeeded)
-                {
-                    return Ok($"Bearer { TokenFactory.CreateToken(_jwtIssuerOptions, user.UserName, user.Id) }");
-                }
+                return HandleError("User not found");
             }
 
-            return BadRequest();
+            var result = await _signInManager.PasswordSignInAsync(user, credentials.Password, true, false);
+            if (!result.Succeeded)
+            {
+                return HandleError("Error signing in");
+            }
+
+            return Ok($"Bearer { TokenFactory.CreateToken(_jwtIssuerOptions, GetClient(HttpContext), user) }");
         }
 
         [AllowAnonymous]
@@ -52,17 +53,18 @@ namespace Auth.Controllers
         {
             var user = new AppUser { UserName = credentials.UserName, Email = credentials.Email };
             var result = await _userManager.CreateAsync(user, credentials.Password);
-            if (result.Succeeded)
+            if (!result.Succeeded)
             {
-                // Not a good solution - prefer confirmation mail or the sorts - just for debugging purposes
-                var signedInUser = await _userManager.FindByEmailAsync(credentials.Email);
-                if (signedInUser != null)
-                {
-                    return Ok($"Bearer { TokenFactory.CreateToken(_jwtIssuerOptions, signedInUser.UserName, signedInUser.Id) }");
-                }
+                return HandleError("Error registering");
+            }
+            // Not a good solution - prefer confirmation mail or the sorts - just for debugging purposes
+            var signedInUser = await _userManager.FindByEmailAsync(credentials.Email);
+            if (signedInUser == null)
+            {
+                return HandleError("Error signing in");
             }
 
-            return BadRequest(new { StatusCode = 500 });
+            return Ok($"Bearer { TokenFactory.CreateToken(_jwtIssuerOptions, GetClient(HttpContext), signedInUser) }");
         }
 
         [HttpPost("validate")]
@@ -85,37 +87,14 @@ namespace Auth.Controllers
             return Ok(new { StatusCode = 200 });
         }
 
-        private static class TokenFactory
+        private IActionResult HandleError(string reason)
         {
-            public static string CreateToken(JwtIssuerOptions jwtIssuerOptions, string userName, string userId)
-            {
-                var claims = new ClaimsIdentity(new List<Claim>
-                {
-                    new Claim(JwtRegisteredClaimNames.Sub, userName),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                    new Claim(ClaimTypes.NameIdentifier, userId.ToString())
-                }, "Custom");
+            return ApiError(500, reason);
+        }
 
-                var symetricKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtIssuerOptions.SigningKey));
-                var signingCredentials = new SigningCredentials(symetricKey, SecurityAlgorithms.HmacSha256);
-
-                var expires = DateTime.Now.AddDays(30);
-
-                var tokenDescriptor = new SecurityTokenDescriptor
-                {
-                    Issuer = jwtIssuerOptions.Issuer,
-                    Audience = jwtIssuerOptions.Audience,
-                    Subject = claims,
-                    NotBefore = DateTime.Now,
-                    Expires = expires,
-                    IssuedAt = DateTime.Now,
-                    SigningCredentials = signingCredentials
-                };
-
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var token = tokenHandler.CreateToken(tokenDescriptor);
-                return tokenHandler.WriteToken(token);
-            }
+        private string GetClient(HttpContext httpContext)
+        {
+            return httpContext.Request.Headers[CLIENT_HEADER_NAME];
         }
     }
 }

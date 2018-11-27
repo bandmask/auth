@@ -1,25 +1,36 @@
 ﻿using System;
 using System.IdentityModel.Tokens.Jwt;
+using System.IO;
+using System.Linq;
 using System.Text;
 using AspNetCore.Identity.Mongo;
+using Auth.Filters;
 using Auth.Models;
+using Auth.Settings;
+using Auth.Token;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Auth
 {
     public class Startup
     {
-        public IConfiguration Configuration { get; }
+        private readonly IConfiguration Configuration;
 
-        public Startup(IConfiguration configuration)
+        public Startup(IHostingEnvironment env)
         {
-            Configuration = configuration;
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(env.ContentRootPath)
+                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional : false)
+                .AddEnvironmentVariables();
+
+            Configuration = builder.Build();
         }
 
         public void ConfigureServices(IServiceCollection services)
@@ -31,13 +42,13 @@ namespace Auth
                     .AllowAnyHeader();
             }));
 
-            var jwtAppSettingOptions = Configuration.GetSection(nameof(JwtIssuerOptions));
-            var jwtIssuerOptions = GetJwtIssuerOptions(jwtAppSettingOptions);
+            var jwtIssuerOptions = new JwtIssuerOptions(Configuration.GetSection(nameof(JwtIssuerOptions)));
+            services.AddTransient<JwtIssuerOptions>(provider => jwtIssuerOptions);
 
-            services.AddSingleton<JwtIssuerOptions>(jwtIssuerOptions);
+            var connectionsOptions = new ConnectionsOptions(Configuration.GetSection(nameof(ConnectionsOptions)));
             services.AddIdentityMongoDbProvider<AppUser>(dbIdentityOptions =>
             {
-                dbIdentityOptions.ConnectionString = "mongodb://localhost/auth";
+                dbIdentityOptions.ConnectionString = connectionsOptions.MongoDbConnection;
             });
 
             services.AddAuthentication(authenticationOptions =>
@@ -58,14 +69,17 @@ namespace Auth
                         ValidateIssuerSigningKey = true,
 
                         ValidIssuer = jwtIssuerOptions.Issuer,
-                        ValidAudience = jwtIssuerOptions.Audience,
+                        ValidAudiences = jwtIssuerOptions.Audiences,
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtIssuerOptions.SigningKey)),
                         TokenDecryptionKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtIssuerOptions.SigningDecryption)),
                         ClockSkew = TimeSpan.Zero
                     };
                 });
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddMvc(config =>
+            {
+                config.Filters.Add(new ClientFilterAttribute(allowedClients: jwtIssuerOptions.Audiences));
+            }).SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
@@ -73,20 +87,6 @@ namespace Auth
             app.UseCors("allowAllPolicy");
             app.UseAuthentication();
             app.UseMvc();
-        }
-
-        private JwtIssuerOptions GetJwtIssuerOptions(IConfigurationSection jwtAppSettingOptions)
-        {
-            var jwtIssuerOptions = new JwtIssuerOptions
-            {
-                Issuer = jwtAppSettingOptions[nameof(JwtIssuerOptions.Issuer)],
-                Audience = jwtAppSettingOptions[nameof(JwtIssuerOptions.Audience)],
-                Authority = jwtAppSettingOptions[nameof(JwtIssuerOptions.Audience)],
-                SigningKey = jwtAppSettingOptions[nameof(JwtIssuerOptions.SigningKey)],
-                SigningDecryption = jwtAppSettingOptions[nameof(JwtIssuerOptions.SigningDecryption)]
-            };
-
-            return jwtIssuerOptions;
         }
     }
 }
