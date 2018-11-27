@@ -13,7 +13,7 @@ namespace Auth.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public partial class AuthController : BaseController
+    public class AuthController : BaseController
     {
         private const string CLIENT_HEADER_NAME = "ropr-domain-client";
 
