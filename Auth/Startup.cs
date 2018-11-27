@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Security.Cryptography;
-using Auth.DataAccess.Contexts;
-using Auth.DataAccess.Stores;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using AspNetCore.Identity.Mongo;
 using Auth.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
@@ -15,58 +15,78 @@ namespace Auth
 {
     public class Startup
     {
+        public IConfiguration Configuration { get; }
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
         }
 
-        public IConfiguration Configuration { get; }
-
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddTransient<UserContext, UserContext>();
-            services.AddTransient<UserStore, UserStore>();
+            services.AddCors(corsPolicy => corsPolicy.AddPolicy("allowAllPolicy", builder =>
+            {
+                builder.AllowAnyOrigin()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader();
+            }));
 
-            services.AddAuthentication(options =>
+            var jwtAppSettingOptions = Configuration.GetSection(nameof(JwtIssuerOptions));
+            var jwtIssuerOptions = GetJwtIssuerOptions(jwtAppSettingOptions);
+
+            services.AddSingleton<JwtIssuerOptions>(jwtIssuerOptions);
+            services.AddIdentityMongoDbProvider<AppUser>(dbIdentityOptions =>
             {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(configureOptions =>
-            {
-                configureOptions.ClaimsIssuer = _validIssuer;
-                configureOptions.TokenValidationParameters = GetTokenValidationParameters;
-                configureOptions.SaveToken = true;
+                dbIdentityOptions.ConnectionString = "mongodb://localhost/auth";
             });
+
+            services.AddAuthentication(authenticationOptions =>
+                {
+                    authenticationOptions.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    authenticationOptions.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                .AddJwtBearer(jwtBearerOptions =>
+                {
+                    jwtBearerOptions.SaveToken = true;
+                    jwtBearerOptions.RequireHttpsMetadata = false;
+
+                    jwtBearerOptions.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+
+                        ValidIssuer = jwtIssuerOptions.Issuer,
+                        ValidAudience = jwtIssuerOptions.Audience,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtIssuerOptions.SigningKey)),
+                        TokenDecryptionKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtIssuerOptions.SigningDecryption)),
+                        ClockSkew = TimeSpan.Zero
+                    };
+                });
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            app.UseCors("allowAllPolicy");
             app.UseAuthentication();
             app.UseMvc();
         }
 
-        private TokenValidationParameters GetTokenValidationParameters => new TokenValidationParameters
+        private JwtIssuerOptions GetJwtIssuerOptions(IConfigurationSection jwtAppSettingOptions)
         {
-            ValidateIssuer = true,
-            ValidIssuer = _validIssuer,
+            var jwtIssuerOptions = new JwtIssuerOptions
+            {
+                Issuer = jwtAppSettingOptions[nameof(JwtIssuerOptions.Issuer)],
+                Audience = jwtAppSettingOptions[nameof(JwtIssuerOptions.Audience)],
+                Authority = jwtAppSettingOptions[nameof(JwtIssuerOptions.Audience)],
+                SigningKey = jwtAppSettingOptions[nameof(JwtIssuerOptions.SigningKey)],
+                SigningDecryption = jwtAppSettingOptions[nameof(JwtIssuerOptions.SigningDecryption)]
+            };
 
-            ValidateAudience = true,
-            ValidAudience = _validAudience,
-
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new RsaSecurityKey(new RSACryptoServiceProvider(512)), //_signingKey
-
-            RequireExpirationTime = false,
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
-        };
-
-        private const string _validIssuer = "ropr.se";
-        private const string _validAudience = "ropr-audience";
-        private const string _issuerSigningKey = "asdasd123";
+            return jwtIssuerOptions;
+        }
     }
 }
