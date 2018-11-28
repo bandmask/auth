@@ -35,12 +35,13 @@ namespace Auth
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddCors(corsPolicy => corsPolicy.AddPolicy("allowAllPolicy", builder =>
-            {
-                builder.AllowAnyOrigin()
-                    .AllowAnyMethod()
-                    .AllowAnyHeader();
-            }));
+            services.AddCors(corsPolicy => corsPolicy.AddPolicy("allowAllPolicy",
+                builder => builder.SetIsOriginAllowedToAllowWildcardSubdomains()
+                .WithOrigins("https://*.ropr.se ")
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .Build()
+            ));
 
             var jwtIssuerOptions = new JwtIssuerOptions(Configuration.GetSection(nameof(JwtIssuerOptions)));
             services.AddTransient<JwtIssuerOptions>(provider => jwtIssuerOptions);
@@ -59,8 +60,7 @@ namespace Auth
                 .AddJwtBearer(jwtBearerOptions =>
                 {
                     jwtBearerOptions.SaveToken = true;
-                    jwtBearerOptions.RequireHttpsMetadata = false;
-
+                    jwtBearerOptions.RequireHttpsMetadata = true;
                     jwtBearerOptions.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuer = true,
@@ -71,7 +71,6 @@ namespace Auth
                         ValidIssuer = jwtIssuerOptions.Issuer,
                         ValidAudiences = jwtIssuerOptions.Audiences,
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtIssuerOptions.SigningKey)),
-                        TokenDecryptionKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtIssuerOptions.SigningDecryption)),
                         ClockSkew = TimeSpan.Zero
                     };
                 });
