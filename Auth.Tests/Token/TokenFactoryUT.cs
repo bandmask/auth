@@ -15,11 +15,11 @@ namespace Auth.Tests.Token
         private string _token;
         private JwtIssuerOptions _jwtIssuerOptions;
 
-        [SetUp]
+        [OneTimeSetUp]
         public void Setup()
         {
             _jwtIssuerOptions = GetJwtSignerOptions();
-            _token = TokenFactory.CreateToken(_jwtIssuerOptions, GetClient(), GetAppUser());
+            _token = new TokenFactory().CreateToken(_jwtIssuerOptions, GetClient(), GetAppUser());
         }
 
         [Test]

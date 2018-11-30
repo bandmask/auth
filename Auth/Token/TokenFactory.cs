@@ -9,9 +9,14 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Auth.Token
 {
-    public static class TokenFactory
+    public interface ITokenFactory
     {
-        public static string CreateToken(JwtIssuerOptions jwtIssuerOptions, string client, AppUser user)
+        string CreateToken(JwtIssuerOptions jwtIssuerOptions, string client, AppUser user);
+    }
+
+    public class TokenFactory : ITokenFactory
+    {
+        public string CreateToken(JwtIssuerOptions jwtIssuerOptions, string client, AppUser user)
         {
             var claims = new ClaimsIdentity(new List<Claim>
             {

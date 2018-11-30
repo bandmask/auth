@@ -48,6 +48,8 @@ namespace Auth
             var jwtIssuerOptions = new JwtIssuerOptions(Configuration.GetSection(nameof(JwtIssuerOptions)));
             services.AddTransient<JwtIssuerOptions>(provider => jwtIssuerOptions);
 
+            services.AddTransient<ITokenFactory, TokenFactory>();
+
             var connectionsOptions = new ConnectionsOptions(Configuration.GetSection(nameof(ConnectionsOptions)));
             services.AddIdentityMongoDbProvider<AppUser>(dbIdentityOptions =>
             {

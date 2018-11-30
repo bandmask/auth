@@ -1,18 +1,17 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 
-namespace Auth.Errors
+namespace Auth.Results
 {
     public class ApiErrorResult : ObjectResult
     {
         public ApiErrorResult() : this(new ApiError()) { }
-
         public ApiErrorResult(object value) : base(value) { }
     }
 
-    public class ApiError
+    public class ApiError : BaseApiResult
     {
-        public int StatusCode { get; private set; }
+        public int StatusCode { get; set; }
         public string StatusDescription { get; private set; }
 
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]

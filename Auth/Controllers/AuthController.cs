@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Auth.Models;
+using Auth.Results;
 using Auth.Settings;
 using Auth.Token;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -20,9 +21,11 @@ namespace Auth.Controllers
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
         private readonly JwtIssuerOptions _jwtIssuerOptions;
+        private readonly ITokenFactory _tokenFactory;
 
-        public AuthController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager, JwtIssuerOptions jwtIssuerOptions)
+        public AuthController(ITokenFactory tokenFactory, UserManager<AppUser> userManager, SignInManager<AppUser> signInManager, JwtIssuerOptions jwtIssuerOptions)
         {
+            _tokenFactory = tokenFactory;
             _userManager = userManager;
             _signInManager = signInManager;
             _jwtIssuerOptions = jwtIssuerOptions;
@@ -30,7 +33,7 @@ namespace Auth.Controllers
 
         [AllowAnonymous]
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] CredentialsModel credentials)
+        public async Task<ActionResult<BaseApiResult>> Login([FromBody] CredentialsModel credentials)
         {
             var user = await _userManager.FindByEmailAsync(credentials.Email);
             if (user == null)
@@ -44,12 +47,12 @@ namespace Auth.Controllers
                 return HandleError("Error signing in");
             }
 
-            return Ok($"Bearer { TokenFactory.CreateToken(_jwtIssuerOptions, GetClient(HttpContext), user) }");
+            return ApiToken($"{_tokenFactory.CreateToken(_jwtIssuerOptions, GetClient(GetHttpContext()), user)}");
         }
 
         [AllowAnonymous]
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] CredentialsModel credentials)
+        public async Task<ActionResult<BaseApiResult>> Register([FromBody] CredentialsModel credentials)
         {
             var user = new AppUser { UserName = credentials.UserName, Email = credentials.Email };
             var result = await _userManager.CreateAsync(user, credentials.Password);
@@ -64,11 +67,11 @@ namespace Auth.Controllers
                 return HandleError("Error signing in");
             }
 
-            return Ok($"Bearer { TokenFactory.CreateToken(_jwtIssuerOptions, GetClient(HttpContext), signedInUser) }");
+            return ApiToken($"{ _tokenFactory.CreateToken(_jwtIssuerOptions, GetClient(GetHttpContext()), signedInUser) }");
         }
 
         [HttpPost("validate")]
-        public IActionResult Validate()
+        public ActionResult Validate()
         {
             return Ok(new { StatusCode = 200 });
         }
@@ -87,7 +90,7 @@ namespace Auth.Controllers
             return Ok(new { StatusCode = 200 });
         }
 
-        private IActionResult HandleError(string reason)
+        private ActionResult<BaseApiResult> HandleError(string reason)
         {
             return ApiError(500, reason);
         }

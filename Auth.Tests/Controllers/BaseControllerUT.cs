@@ -1,5 +1,5 @@
 using Auth.Controllers;
-using Auth.Errors;
+using Auth.Results;
 using NUnit.Framework;
 
 namespace Auth.Tests.Controllers
@@ -15,36 +15,56 @@ namespace Auth.Tests.Controllers
         }
 
         [Test]
-        public void ApiErro_with_NO_parameters_Should_return_basic_result()
+        public void ApiToken_with_NO_parameters_Should_return_basic_result()
         {
-            AssertEquality(new ApiError(), _controller.ApiError());
+            AssertTokenEquality(new ApiToken(), _controller.ApiToken());
         }
 
         [Test]
-        public void ApiErro_with_statusCode_and_description_Should_error_result()
+        public void ApiToken_with_token_Should_return_token_result()
+        {
+            var temptoken = "temptoken";
+            AssertTokenEquality(new ApiToken(temptoken), _controller.ApiToken(temptoken));
+        }
+
+        [Test]
+        public void ApiError_with_NO_parameters_Should_return_basic_result()
+        {
+            AssertErrorEquality(new ApiError(), _controller.ApiError());
+        }
+
+        [Test]
+        public void ApiError_with_statusCode_and_description_Should_error_result()
         {
             var statusCode = 300;
             var statusDescription = "some random description";
 
-            AssertEquality(new ApiError(statusCode, statusDescription), _controller.ApiError(statusCode, statusDescription));
+            AssertErrorEquality(new ApiError(statusCode, statusDescription), _controller.ApiError(statusCode, statusDescription));
         }
 
         [Test]
-        public void ApiErro_with_statusCode_and_description_and_message_Should_return_result()
+        public void ApiError_with_statusCode_and_description_and_message_Should_return_result()
         {
             var statusCode = 300;
             var statusDescription = "some random description";
             var message = "some random error message";
 
-            AssertEquality(new ApiError(statusCode, statusDescription, message), _controller.ApiError(statusCode, statusDescription, message));
+            AssertErrorEquality(new ApiError(statusCode, statusDescription, message), _controller.ApiError(statusCode, statusDescription, message));
         }
 
-        private void AssertEquality(ApiError expected, ApiErrorResult actual)
+        private void AssertErrorEquality(ApiError expected, ApiErrorResult actual)
         {
             var actualError = actual.Value as ApiError;
             Assert.AreEqual(expected.StatusCode, actualError.StatusCode);
             Assert.AreEqual(expected.StatusDescription, actualError.StatusDescription);
             Assert.AreEqual(expected.Message, actualError.Message);
+        }
+
+        private void AssertTokenEquality(ApiToken expected, ApiTokenResult actual)
+        {
+            var actualToken = actual.Value as ApiToken;
+            Assert.AreEqual(expected.StatusCode, actualToken.StatusCode);
+            Assert.AreEqual(expected.Token, actualToken.Token);
         }
     }
 }
