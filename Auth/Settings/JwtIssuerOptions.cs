@@ -6,11 +6,12 @@ namespace Auth.Settings
 {
     public class JwtIssuerOptions
     {
-        public List<string> Audiences { get; private set; }
-        public string Issuer { get; private set; }
-        public string Authority { get; private set; }
-        public string SigningKey { get; private set; }
-        public string SigningDecryption { get; private set; }
+        public List<string> Audiences { get; set; }
+        public string Issuer { get; set; }
+        public string Authority { get; set; }
+        public string SigningKey { get; set; }
+
+        public JwtIssuerOptions() { }
 
         public JwtIssuerOptions(IConfigurationSection section)
         {
@@ -22,7 +23,6 @@ namespace Auth.Settings
             Issuer = section[nameof(Issuer)];
             Authority = section[nameof(Authority)];
             SigningKey = section[nameof(SigningKey)];
-            SigningDecryption = section[nameof(SigningDecryption)];
         }
     }
 }
