@@ -27,7 +27,9 @@ namespace Auth
         {
             var builder = new ConfigurationBuilder()
                 .SetBasePath(env.ContentRootPath)
-                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional : false)
+                .AddJsonFile($"Config/appSettings.json", optional : false)
+                .AddJsonFile($"Config/jwtSignerSettings.json", optional : false)
+                .AddJsonFile($"Config/mongoDbSettings.json", optional : false)
                 .AddEnvironmentVariables();
 
             Configuration = builder.Build();

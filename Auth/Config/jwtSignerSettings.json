@@ -1,0 +1,11 @@
+{
+  "JwtIssuerOptions": {
+    "Issuer": "ropr.se",
+    "Audiences": [
+      "ropr",
+      "daysofrum"
+    ],
+    "Authority": "authority-ropr-se",
+    "SigningKey": "MTE0NEQzMThDOEI4RDVBM0E3OUJBNEIxQTI3QzM="
+  }
+}
