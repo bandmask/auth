@@ -27,9 +27,9 @@ namespace Auth.Filters
             }
             else
             {
-                context.HttpContext.Response.ContentType = "application/json";
                 var error = new HeaderNotPresentError();
                 context.HttpContext.Response.StatusCode = error.StatusCode;
+                context.HttpContext.Response.ContentType = "application/json";
                 await context.HttpContext.Response.WriteAsync(JsonConvert.SerializeObject(error));
             }
         }
