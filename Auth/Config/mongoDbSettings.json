@@ -1,5 +1,0 @@
-{
-  "ConnectionsOptions": {
-    "MongoDbConnection": "mongodb://localhost/auth"
-  }
-}
